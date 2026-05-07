@@ -5,11 +5,31 @@ final class APIClient {
     static let shared = APIClient()
     private init() {}
 
+    // MARK: - Public API
+
     func request<T: Decodable>(
         _ endpoint: APIEndpoint,
         token: String? = nil,
         type: T.Type
     ) async throws -> T {
+
+        let request = try await makeRequest(endpoint, token: token)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        let httpResponse = try validateResponse(response)
+
+        try handleStatusCode(httpResponse)
+
+        return try decode(data, type: T.self)
+    }
+
+    // MARK: - Request Builder
+
+    private func makeRequest(
+        _ endpoint: APIEndpoint,
+        token: String?
+    ) async throws -> URLRequest {
 
         guard await NetworkMonitor.shared.checkInternet() else {
             throw APIError.networkError
@@ -20,22 +40,34 @@ final class APIClient {
         }
 
         var request = URLRequest(url: url)
-        if let token = token {
+
+        if let token {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        return request
+    }
 
+    // MARK: - Response Validation
+
+    private func validateResponse(_ response: URLResponse) throws -> HTTPURLResponse {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
-        // Rate limit update (global)
+        // Rate limit tracking
         RateLimitHandler.shared.update(from: httpResponse.allHeaderFields)
 
-        switch httpResponse.statusCode {
+        return httpResponse
+    }
+
+    // MARK: - Status Handling
+
+    private func handleStatusCode(_ response: HTTPURLResponse) throws {
+        switch response.statusCode {
+
             case 200:
-                break
+                return
 
             case 304:
                 throw APIError.unknown
@@ -54,25 +86,15 @@ final class APIClient {
             default:
                 throw APIError.unknown
         }
+    }
 
+    // MARK: - Decoding
+
+    private func decode<T: Decodable>(_ data: Data, type: T.Type) throws -> T {
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
             throw APIError.invalidResponse
         }
     }
-
-    static func requestWithHeaders<T: Decodable>(
-        _ request: URLRequest,
-        type: T.Type
-    ) async throws -> (items: T, headers: [AnyHashable: Any]) {
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        let decoded = try JSONDecoder().decode(T.self, from: data)
-        let headers = (response as? HTTPURLResponse)?.allHeaderFields ?? [:]
-
-        return (items: decoded, headers: headers)
-    }
-
 }

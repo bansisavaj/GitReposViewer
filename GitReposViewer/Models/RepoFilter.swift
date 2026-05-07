@@ -8,7 +8,6 @@ enum RepoFilter: String, CaseIterable {
 }
 
 enum GroupingType {
-    case none
     case language
     case stars
 }

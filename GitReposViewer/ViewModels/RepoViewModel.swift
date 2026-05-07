@@ -10,7 +10,6 @@ final class RepoListViewModel: ObservableObject {
     @Published var selectedFilter: RepoFilter = .all
     @Published private(set) var state: LoadingState = .idle
     @Published var path: [Route] = []
-    @Published var canRetry: Bool = false
 
     // MARK: - Services
 
@@ -19,14 +18,33 @@ final class RepoListViewModel: ObservableObject {
     let favoritesManager: FavoritesManager
     private let rateLimiter: RateLimitHandling
 
-    // MARK: - Language cache
+    // MARK: - Derived State
+    var filteredRepos: [Repository] {
+        repos.filter { repo in
+            switch selectedFilter {
+                case .all:
+                    return true
+                case .user:
+                    return repo.owner.type == "User"
+                case .organization:
+                    return repo.owner.type == "Organization"
+                case .favorites:
+                    return favoritesManager.favorites.contains(repo.id)
+            }
+        }
+    }
 
-    @Published private(set) var languageCache: [Int: String] = [:]
+    // MARK: - Language Cache
+
+    private(set) var languageCache: [Int: String] = [:]
+    private let cacheKey = "repo_language_cache"
 
     /// Tracks in-flight requests (prevents duplicate calls)
     private var inFlightRequests: Set<Int> = []
 
-//    @Published var pagination: PaginationManager<Repository>
+    // MARK: - Retry State
+
+    var canRetry: Bool = false
 
     // MARK: - Routing
 
@@ -47,33 +65,25 @@ final class RepoListViewModel: ObservableObject {
         self.languageService = languageService
         self.favoritesManager = favoritesManager
         self.rateLimiter = rateLimiter
+
         loadCache()
     }
-    // MARK: - Derived state
 
-    var filteredRepos: [Repository] {
-        repos.filter { repo in
-            switch selectedFilter {
-                case .all:
-                    return true
-                case .user:
-                    return repo.owner.type == "User"
-                case .organization:
-                    return repo.owner.type == "Organization"
-                case .favorites:
-                    return favoritesManager.favorites.contains(repo.id)
-            }
-        }
-    }
+    // MARK: - Public API
 
     func updateFilter(_ filter: RepoFilter) {
         selectedFilter = filter
     }
 
-    // MARK: - Data loading
+    func toggleFavorite(_ repo: Repository) {
+        favoritesManager.toggleFavorite(repo)
+    }
+
+    // MARK: - Data Loading
 
     func loadRepos() async {
         state = .loading
+
         do {
             let result = try await repoService.fetchRepositories()
             repos = result
@@ -86,34 +96,7 @@ final class RepoListViewModel: ObservableObject {
         }
     }
 
-//    func loadRepos() async {
-//        state = .loading
-//        do {
-//            await pagination.loadMore()
-//            state = .success
-//        } catch let error as APIError {
-//            canRetry = error.isRetryable
-//            state = .failed(error.message)
-//        } catch {
-//            state = .failed("Unexpected error")
-//        }
-//    }
-//
-//    func loadNextPageIfNeeded(currentItem: Repository) async {
-//        guard !pagination.isLoading else { return }
-//        guard let last = repos.last, last.id == currentItem.id else { return }
-//        guard pagination.canLoadMore else { return }
-//
-//        await loadRepos()
-//    }
-
-    // MARK: - Favorites
-
-    func toggleFavorite(_ repo: Repository) {
-        favoritesManager.toggleFavorite(repo)
-    }
-
-    // MARK: - Language loading
+    // MARK: - Language Loading
 
     func loadLanguageIfNeeded(for repo: Repository) async {
         let id = repo.id
@@ -142,8 +125,6 @@ final class RepoListViewModel: ObservableObject {
     }
 
     // MARK: - Persistence
-
-    private let cacheKey = "repo_language_cache"
 
     private func loadCache() {
         guard

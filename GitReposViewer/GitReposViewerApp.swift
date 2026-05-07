@@ -13,7 +13,7 @@ struct GitReposViewerApp: App {
     let repoService = RepositoryRequest()
     let languageService = LanguageRequest()
 
-    let favoritesManager = FavoritesManager()
+    @StateObject private var favoritesManager = FavoritesManager()
     let rateLimiter = RateLimitHandler.shared
 
     var body: some Scene {

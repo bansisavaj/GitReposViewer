@@ -1,6 +1,4 @@
-import Foundation
 import Combine
-import SwiftUI
 
 @MainActor
 final class LanguageByGroupViewModel: ObservableObject {
@@ -8,11 +6,7 @@ final class LanguageByGroupViewModel: ObservableObject {
     // MARK: - UI State
 
     @Published private(set) var groupedRepos: [RepoGroup] = []
-    @Published var grouping: GroupingType = .none {
-        didSet {
-            updateGrouping()
-        }
-    }
+    @Published var grouping: GroupingType = .language
 
     // MARK: - Dependencies
 
@@ -22,8 +16,6 @@ final class LanguageByGroupViewModel: ObservableObject {
     // MARK: - Data
 
     private var repos: [Repository] = []
-
-    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
@@ -57,8 +49,6 @@ final class LanguageByGroupViewModel: ObservableObject {
         let cache = languageCacheProvider()
 
         switch grouping {
-            case .none:
-                groupedRepos = groupByNone()
             case .stars:
                 groupedRepos = groupByStars()
             case .language:
@@ -67,10 +57,6 @@ final class LanguageByGroupViewModel: ObservableObject {
     }
 
     // MARK: - Grouping strategies
-    private func groupByNone() -> [RepoGroup] {
-        [RepoGroup(title: "All", repos: repos)]
-    }
-
     private func groupByStars() -> [RepoGroup] {
         [RepoGroup(title: "All (Stars)", repos: repos)]
     }
@@ -85,7 +71,7 @@ final class LanguageByGroupViewModel: ObservableObject {
     }
 }
 
-// MARK: - Constants
+// MARK: - Constants 
 private enum GroupingConstants {
     static let unknownLanguage = ""
 }
