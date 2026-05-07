@@ -141,3 +141,18 @@ final class RepoListViewModel: ObservableObject {
         UserDefaults.standard.set(data, forKey: cacheKey)
     }
 }
+// MARK: - Test Helpers
+
+@MainActor
+extension RepoListViewModel {
+    /// Resets language cache and optionally clears UserDefaults (for isolated testing)
+    func resetLanguageCache(clearUserDefaults: Bool = false) {
+        languageCache = [:]
+        if clearUserDefaults {
+            UserDefaults.standard.removeObject(forKey: cacheKey)
+        }
+    }
+    func setLanguageCache(for repoID: Int, language: String) {
+        languageCache[repoID] = language
+    }
+}

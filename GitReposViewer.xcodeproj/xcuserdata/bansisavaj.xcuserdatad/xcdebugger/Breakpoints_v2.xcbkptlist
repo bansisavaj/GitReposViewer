@@ -56,7 +56,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "D88FAE26-DA15-473F-8579-FE974507A8AD"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "GitReposViewer/Manager/RateLimitHandler.swift"
@@ -72,7 +72,7 @@
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
             uuid = "8585D74F-4D95-4518-8DC1-89F0F98770C6"
-            shouldBeEnabled = "Yes"
+            shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
             filePath = "GitReposViewer/Manager/RateLimitHandler.swift"
@@ -81,6 +81,22 @@
             startingLineNumber = "52"
             endingLineNumber = "52"
             landmarkName = "updateRemainingRequests(from:)"
+            landmarkType = "7">
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "CC2F8CB1-72EA-4B4D-A7B5-63FFD1E359D3"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "GitReposViewer/ViewModels/RepoViewModel.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "119"
+            endingLineNumber = "119"
+            landmarkName = "loadLanguageIfNeeded(for:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
