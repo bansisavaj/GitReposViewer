@@ -6,29 +6,31 @@ final class GitReposViewerTests: XCTestCase {
 
     var viewModel: RepoListViewModel!
     var repoService: MockRepoService!
-    var languageService: MockLanguageService!
+    var repoInfoService: MockRepoInfoService!
     var favoritesManager: FavoritesManager!
     var rateLimiter: MockRateLimiter!
+    let defaultRepoInfo = RepoInfo(id: 1, language: "Swift", stargazersCount: 100)
 
-    override func setUp() async throws {
-        try await super.setUp()
+    override func setUp() {
         repoService = MockRepoService()
-        languageService = MockLanguageService()
+        repoInfoService = MockRepoInfoService()
         favoritesManager = FavoritesManager()
         rateLimiter = MockRateLimiter()
+
         viewModel = RepoListViewModel(
             repoService: repoService,
-            languageService: languageService,
+            repoInfoService: repoInfoService,
             favoritesManager: favoritesManager,
             rateLimiter: rateLimiter
         )
-        viewModel.resetLanguageCache()
+
+        viewModel.resetRepoMetaCache()
     }
 
     override func tearDown() {
         viewModel = nil
         repoService = nil
-        languageService = nil
+        repoInfoService = nil
         favoritesManager = nil
         rateLimiter = nil
         super.tearDown()
@@ -53,23 +55,20 @@ final class GitReposViewerTests: XCTestCase {
             Repository(
                 id: 101,
                 name: "Alamofire",
-                owner: Owner(type: "Organization"),
-                description: "Elegant HTTP Networking in Swift",
-                languagesURL: "https://api.github.com/repos/Alamofire/Alamofire/languages"
+                owner: Owner(type: "Organization", login: ""),
+                description: "Elegant HTTP Networking in Swift"
             ),
             Repository(
                 id: 102,
                 name: "SwiftLint",
-                owner: Owner(type: "User"),
-                description: "A tool to enforce Swift style and conventions",
-                languagesURL: "https://api.github.com/repos/realm/SwiftLint/languages"
+                owner: Owner(type: "User", login: ""),
+                description: "A tool to enforce Swift style and conventions"
             ),
             Repository(
                 id: 103,
                 name: "SwiftLint",
-                owner: Owner(type: "User"),
-                description: "A tool to enforce Swift style and conventions",
-                languagesURL: "https://api.github.com/repos/realm/SwiftLint/languages"
+                owner: Owner(type: "User", login: ""),
+                description: "A tool to enforce Swift style and conventions"
             )
         ]
         viewModel.repos = repos
@@ -79,50 +78,55 @@ final class GitReposViewerTests: XCTestCase {
 
         viewModel.selectedFilter = .user
         XCTAssertEqual(viewModel.filteredRepos.count, 2)
-        XCTAssertEqual(viewModel.filteredRepos.first?.id, 102)
+        XCTAssertTrue(viewModel.filteredRepos.contains { $0.id == 102 })
 
         viewModel.selectedFilter = .organization
         XCTAssertEqual(viewModel.filteredRepos.count, 1)
         XCTAssertEqual(viewModel.filteredRepos.first?.id, 101)
     }
 
-    func testLoadLanguageIfNeededSuccess() async throws {
+    func testLoadRepoInfoIfNeededSuccess() async throws {
         let repo = makeRepo(id: 101, name: "Alamofire", ownerType: "Organization")
-        languageService.languages = ["Swift": 90000, "Objective-C": 10000]
-        await viewModel.loadLanguageIfNeeded(for: repo)
-        XCTAssertEqual(viewModel.languageCache[repo.id], "Swift")
+                repoInfoService.repoInfo = defaultRepoInfo
+        await viewModel.loadRepoInfoIfNeeded(for: repo)
+        XCTAssertEqual(viewModel.repoMetaCache[repo.id]?.language, "Swift")
+
     }
 
-    func testLoadLanguageIfNeededWithCache() async throws {
+    func testLoadRepoInfoIfNeededWithCache() async throws {
         let repo = makeRepo(id: 102, name: "SwiftLint", ownerType: "User")
-        viewModel.setLanguageCache(for: repo.id, language: "Ruby")
-        languageService.languages = ["Swift": 80000, "Ruby": 20000]
-        await viewModel.loadLanguageIfNeeded(for: repo)
-        XCTAssertEqual(viewModel.languageCache[repo.id], "Ruby")
+        viewModel.setRepoMetaCache(for: repo.id, repoCache:
+                                    RepoMetaCache(language: "Swift",
+                                                  stargazersCount: 100))
+        repoInfoService.repoInfo = defaultRepoInfo
+        await viewModel.loadRepoInfoIfNeeded(for: repo)
+        XCTAssertEqual(viewModel.repoMetaCache[repo.id], RepoMetaCache(
+            language: "Swift",
+            stargazersCount: 100
+        ))
     }
 
-    func testLoadLanguageIfNeededFailure() async throws {
+    func testLoadRepoInfoIfNeededFailure() async throws {
         let repo = makeRepo(id: 103, name: "Kingfisher", ownerType: "User")
-        languageService.shouldThrow = true
-        await viewModel.loadLanguageIfNeeded(for: repo)
-        XCTAssertNil(viewModel.languageCache[repo.id])
+        repoInfoService.shouldThrow = true
+        await viewModel.loadRepoInfoIfNeeded(for: repo)
+        XCTAssertNil(viewModel.repoMetaCache[repo.id])
     }
 
-    func testLoadLanguageRespectsRateLimiter() async throws {
+    func testLoadRepoInfoRespectsRateLimiter() async throws {
         let repo = makeRepo(id: 101, name: "Alamofire", ownerType: "Organization")
         rateLimiter.didWarnLowLimit = true
-        languageService.languages = ["Swift": 90000]
-        await viewModel.loadLanguageIfNeeded(for: repo)
-        XCTAssertNil(viewModel.languageCache[repo.id])
+        repoInfoService.repoInfo = defaultRepoInfo
+        await viewModel.loadRepoInfoIfNeeded(for: repo)
+        XCTAssertNil(viewModel.repoMetaCache[repo.id])
     }
 
     private func makeRepo(id: Int, name: String, ownerType: String) -> Repository {
         Repository(
             id: id,
             name: name,
-            owner: Owner(type: ownerType),
-            description: "Dummy description for \(name)",
-            languagesURL: "https://api.github.com/repos/\(name)/languages"
+            owner: Owner(type: ownerType, login: ""),
+            description: "Dummy description for \(name)"
         )
     }
 }

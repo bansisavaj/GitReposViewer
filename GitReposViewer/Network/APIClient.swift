@@ -35,11 +35,7 @@ final class APIClient {
             throw APIError.networkError
         }
 
-        guard let url = endpoint.url else {
-            throw APIError.invalidResponse
-        }
-
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: endpoint.url)
 
         if let token {
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
@@ -93,7 +89,8 @@ final class APIClient {
     private func decode<T: Decodable>(_ data: Data, type: T.Type) throws -> T {
         do {
             return try JSONDecoder().decode(T.self, from: data)
-        } catch {
+        } catch let error {
+            print(error.localizedDescription)
             throw APIError.invalidResponse
         }
     }

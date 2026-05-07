@@ -11,7 +11,7 @@ import SwiftUI
 struct GitReposViewerApp: App {
 
     let repoService = RepositoryRequest()
-    let languageService = LanguageRequest()
+    let repoInfoService = RepoInfoRequest()
 
     @StateObject private var favoritesManager = FavoritesManager()
     let rateLimiter = RateLimitHandler.shared
@@ -22,7 +22,7 @@ struct GitReposViewerApp: App {
                 repoService: repoService,
                 favoritesManager: favoritesManager,
                 rateLimiter: rateLimiter,
-                languageService: languageService
+                repoInfoService: repoInfoService
             )
         }
     }

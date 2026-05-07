@@ -8,12 +8,12 @@ struct RepoListView: View {
         repoService: RepositoryServiceProtocol,
         favoritesManager: FavoritesManager,
         rateLimiter: RateLimitHandling,
-        languageService: LanguageServiceProtocol
+        repoInfoService: RepoInfoServiceProtocol
     ) {
 
         let repoVM = RepoListViewModel(
             repoService: repoService,
-            languageService: languageService,
+            repoInfoService: repoInfoService,
             favoritesManager: favoritesManager,
             rateLimiter: rateLimiter
         )
@@ -50,31 +50,31 @@ private extension RepoListView {
         switch route {
 
             case .groupByLanguage(let repos):
+                makeGroupedView(repos: repos, grouping: .language)
 
-                let vm = LanguageByGroupViewModel(
-                    languageCacheProvider: { viewModel.languageCache },
-                    favoritesManager: viewModel.favoritesManager
-                )
-
-                LanguageGroupView(
-                    viewModel: vm
-                )
-                .task {
-                    vm.grouping = .language
-                    vm.load(repos: repos)
-                }
-
-            case .groupByStar:
-                VStack {
-                    Text("Group by Stars")
-                        .font(.headline)
-
-                    Text("This feature is not implemented yet.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+            case .groupByStar(let repos):
+                makeGroupedView(repos: repos, grouping: .stars)
         }
     }
+
+    @ViewBuilder
+    private func makeGroupedView(
+        repos: [Repository],
+        grouping: GroupingType
+    ) -> some View {
+
+        let vm = GroupingByRepoViewModel(
+            repoMetaCacheProvider: { viewModel.repoMetaCache },
+            favoritesManager: viewModel.favoritesManager
+        )
+
+        GroupingByRepoView(viewModel: vm)
+            .task {
+                vm.grouping = grouping
+                vm.load(repos: repos)
+            }
+    }
+
 }
 private extension RepoListView {
 
@@ -163,7 +163,7 @@ private extension RepoListView {
                     favoritesManager: viewModel.favoritesManager
                 )
                 .task {
-                    await viewModel.loadLanguageIfNeeded(for: repo)
+                    await viewModel.loadRepoInfoIfNeeded(for: repo)
                 }
                 
             }

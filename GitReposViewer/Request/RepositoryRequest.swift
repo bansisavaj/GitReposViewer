@@ -7,11 +7,9 @@ protocol RepositoryServiceProtocol {
 
 final class RepositoryRequest: RepositoryServiceProtocol {
 
-    private var repoUrl: String? = "https://api.github.com/repositories"
-
     func fetchRepositories() async throws -> [Repository] {
         let repos: [Repository] = try await APIClient.shared.request(
-            .repositories(page: repoUrl),
+            .repositories,
             token: authToken,
             type: [Repository].self
         )

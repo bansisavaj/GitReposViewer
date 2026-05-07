@@ -4,19 +4,22 @@ let authToken: String? = nil //"<YOUR_TOKEN_HERE>"
 
 enum APIEndpoint {
 
-    case repositories(page: String?)
-    case languages(url: String)
+    case repositories
+    case details(owner: String, repo: String)
 
-    var url: URL? {
-
+    var path: String {
         switch self {
 
-            case .repositories(let page):
-                let base = "https://api.github.com/repositories"
-                return URL(string: page ?? base)
+            case .repositories:
+                return "/repositories"
 
-            case .languages(let url):
-                return URL(string: url)
+            case .details(let owner, let repo):
+                return "/repos/\(owner)/\(repo)"
+
         }
+    }
+
+    var url: URL {
+        URL(string: APIConstants.baseURL + path)!
     }
 }

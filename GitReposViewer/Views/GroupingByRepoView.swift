@@ -1,8 +1,8 @@
 import SwiftUI
 
-struct LanguageGroupView: View {
+struct GroupingByRepoView: View {
 
-    @ObservedObject var viewModel: LanguageByGroupViewModel
+    @ObservedObject var viewModel: GroupingByRepoViewModel
 
     var body: some View {
 
@@ -27,6 +27,6 @@ struct LanguageGroupView: View {
                 }
             }
         }
-        .navigationTitle("By Language")
+        .navigationTitle(viewModel.grouping.rawValue)
     }
 }

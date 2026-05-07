@@ -11,16 +11,14 @@ final class MockRepoService: RepositoryServiceProtocol {
             Repository(
                 id: 101,
                 name: "Alamofire",
-                owner: Owner(type: "Organization"),
-                description: "Elegant HTTP Networking in Swift",
-                languagesURL: "https://api.github.com/repos/Alamofire/Alamofire/languages"
+                owner: Owner(type: "Organization", login: ""),
+                description: "Elegant HTTP Networking in Swift"
             ),
             Repository(
                 id: 102,
                 name: "SwiftLint",
-                owner: Owner(type: "User"),
-                description: "A tool to enforce Swift style and conventions",
-                languagesURL: "https://api.github.com/repos/realm/SwiftLint/languages"
+                owner: Owner(type: "User", login: ""),
+                description: "A tool to enforce Swift style and conventions"
             )
         ]
     }

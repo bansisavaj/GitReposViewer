@@ -1,6 +1,11 @@
 import Foundation
 import Combine
 
+struct RepoMetaCache: Codable, Hashable {
+    let language: String
+    let stargazersCount: Int
+}
+
 @MainActor
 final class RepoListViewModel: ObservableObject {
 
@@ -14,7 +19,7 @@ final class RepoListViewModel: ObservableObject {
     // MARK: - Services
 
     private let repoService: RepositoryServiceProtocol
-    private let languageService: LanguageServiceProtocol
+    private let repoInfoService: RepoInfoServiceProtocol
     let favoritesManager: FavoritesManager
     private let rateLimiter: RateLimitHandling
 
@@ -34,10 +39,10 @@ final class RepoListViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Language Cache
+    // MARK: - Repo Meta Cache
 
-    private(set) var languageCache: [Int: String] = [:]
-    private let cacheKey = "repo_language_cache"
+    private(set) var repoMetaCache: [Int: RepoMetaCache] = [:]
+    private let cacheKey = "repo_meta_cache"
 
     /// Tracks in-flight requests (prevents duplicate calls)
     private var inFlightRequests: Set<Int> = []
@@ -57,12 +62,12 @@ final class RepoListViewModel: ObservableObject {
 
     init(
         repoService: RepositoryServiceProtocol,
-        languageService: LanguageServiceProtocol,
+        repoInfoService: RepoInfoServiceProtocol,
         favoritesManager: FavoritesManager,
         rateLimiter: RateLimitHandling
     ) {
         self.repoService = repoService
-        self.languageService = languageService
+        self.repoInfoService = repoInfoService
         self.favoritesManager = favoritesManager
         self.rateLimiter = rateLimiter
 
@@ -96,12 +101,12 @@ final class RepoListViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Language Loading
+    // MARK: - Repo Info Loading
 
-    func loadLanguageIfNeeded(for repo: Repository) async {
+    func loadRepoInfoIfNeeded(for repo: Repository) async {
         let id = repo.id
 
-        guard languageCache[id] == nil else { return }
+        guard repoMetaCache[id] == nil else { return }
         guard !inFlightRequests.contains(id) else { return }
         guard !rateLimiter.didWarnLowLimit else { return }
 
@@ -112,11 +117,13 @@ final class RepoListViewModel: ObservableObject {
         }
 
         do {
-            let dict = try await languageService.fetchLanguages(url: repo.languagesURL)
+            let dict = try await repoInfoService.fetchRepoInfo(owner: repo.owner.login, repo: repo.name)
 
-            let dominantLanguage = dict.max(by: { $0.value < $1.value })?.key ?? ""
+            repoMetaCache[id] = RepoMetaCache(
+                language: dict.language,
+                stargazersCount: dict.stargazersCount
+            )
 
-            languageCache[id] = dominantLanguage
             saveCache()
 
         } catch {
@@ -129,14 +136,14 @@ final class RepoListViewModel: ObservableObject {
     private func loadCache() {
         guard
             let data = UserDefaults.standard.data(forKey: cacheKey),
-            let decoded = try? JSONDecoder().decode([Int: String].self, from: data)
+            let decoded = try? JSONDecoder().decode([Int: RepoMetaCache].self, from: data)
         else { return }
 
-        languageCache = decoded
+        repoMetaCache = decoded
     }
 
     private func saveCache() {
-        guard let data = try? JSONEncoder().encode(languageCache) else { return }
+        guard let data = try? JSONEncoder().encode(repoMetaCache) else { return }
 
         UserDefaults.standard.set(data, forKey: cacheKey)
     }
@@ -145,14 +152,17 @@ final class RepoListViewModel: ObservableObject {
 
 @MainActor
 extension RepoListViewModel {
-    /// Resets language cache and optionally clears UserDefaults (for isolated testing)
-    func resetLanguageCache(clearUserDefaults: Bool = false) {
-        languageCache = [:]
+    /// Resets RepoMeta cache and optionally clears UserDefaults (for isolated testing)
+    func resetRepoMetaCache(clearUserDefaults: Bool = false) {
+        repoMetaCache = [:]
         if clearUserDefaults {
             UserDefaults.standard.removeObject(forKey: cacheKey)
         }
     }
-    func setLanguageCache(for repoID: Int, language: String) {
-        languageCache[repoID] = language
+    func setRepoMetaCache(for repoID: Int, repoCache: RepoMetaCache) {
+        repoMetaCache[repoID] = RepoMetaCache(
+            language: repoCache.language,
+            stargazersCount: repoCache.stargazersCount
+        )
     }
 }
